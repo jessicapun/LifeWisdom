@@ -1,0 +1,592 @@
+<!-- Chosen Palette: Calm Harmony Palette -->
+<!-- Application Structure Plan: The application is structured as a single-page scrolling experience, designed for intuitive content exploration and synthesis.
+1. Header: Contains the site title ("生活智慧篇"), global search, and sorting controls. It also includes functional navigation links (Author Intro, Hot Articles, Category Cards, and dynamic links for actual content categories). This serves as a constant point of interaction and navigation.
+2. Author Introduction Section: Placed at the very top, immediately visible. Its goal is to provide a personal context and connection for the user, introducing the "voice" behind the articles. This qualitative insight (author persona) is presented simply with text and a placeholder image, making it easily consumable.
+3. Hot Articles Section: Follows the author intro. Its goal is to highlight popular or recommended content to immediately engage the user. It presents key textual content (article title, summary) as interactive cards, allowing direct access to full article details. Users interact by clicking cards.
+4. Category Cards Section: Placed below hot articles. Its goal is to facilitate thematic exploration. It presents discrete categories as clickable cards, allowing users to quickly navigate to specific article groupings. This provides an organized way to explore content based on interest.
+5. Categorized Article Sections: Dynamically generated sections for each distinct article category found in the Google Sheet. Their goal is to organize articles by theme, making it easy to browse. Articles are displayed as interactive cards (textual content: title, summary, dates), leading to a modal.
+6. Article Detail Modal: A modal overlay triggered by clicking an article card. Its goal is to provide full article content without leaving the single page. It features interaction points: copying content, and now, switching between text and image versions. (Summary removed in this option)
+
+The structure prioritizes: Discoverability (Hot articles and category cards immediately guide users), Navigability (Sticky header and smooth scrolling links), Consumability (Card layouts for quick scanning, modal for focused reading), and Flexibility (Search and sort functionalities allow for personalized exploration paths). -->
+<!-- Visualization & Content Choices:
+- All Articles Data: Inform, Organize -> List of interactive cards -> Click to open modal, Filter via search, Sort via dropdown -> Provides structured browsing and detail access -> Vanilla JS, HTML, Tailwind.
+- Hot Articles: Inform, Highlight -> Subset of interactive cards -> Click to open modal -> Emphasizes key content immediately -> Vanilla JS, HTML, Tailwind.
+- Article Categories: Organize, Navigate -> Clickable category cards -> Click to smooth scroll -> Facilitates thematic content discovery and non-linear exploration -> Vanilla JS, HTML, Tailwind.
+- Article Details (Textual): Inform, Deep Dive -> Modal display of full text -> Copy button. (Summary generation removed) -> Enables detailed reading and content reuse. -> Vanilla JS, HTML, Tailwind.
+- Search Functionality: Explore, Filter -> Input field with text highlighting -> Keyup event to filter and re-render -> Allows users to find specific content quickly -> Vanilla JS, HTML, Tailwind.
+- Sorting Functionality: Organize, Customize -> Dropdown selector -> Change event to re-render sorted articles -> Empowers users to view content based on their preference -> Vanilla JS, HTML, Tailwind.
+- Author Introduction: Inform, Connect -> Static text block with image placeholder -> Passive consumption -> Provides context and builds rapport -> HTML, Tailwind. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生活智慧篇 - 文章作品集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html {
+            font-family: 'Inter', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .highlight {
+            background-color: #fce303;
+            font-weight: bold;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for chart container */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height, adjust with media queries */
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        /* Style for the PDF iframe to ensure it fills the modal content area */
+        .pdf-viewer {
+            width: 100%;
+            height: 70vh; /* Adjust height as needed to fit within the modal */
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 text-gray-800">
+
+    <header class="bg-white shadow-lg p-4 sticky top-0 z-50 rounded-b-xl">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-purple-700 mb-4 md:mb-0 transform hover:scale-105 transition-transform duration-300">
+                生活智慧篇
+            </h1>
+            <nav class="space-x-4 flex-grow text-center md:text-right">
+                <a href="#author-intro" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">作者介紹</a>
+                <a href="#hot-articles" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">熱門文章</a>
+                <a href="#category-cards" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">文章類別</a>
+            </nav>
+            <div class="mt-4 md:mt-0 md:ml-6 flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                <input type="text" id="searchInput" placeholder="搜尋文章..." class="p-3 border border-gray-300 rounded-full w-full sm:w-64 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md">
+                <select id="sortSelect" class="p-3 border border-gray-300 rounded-full w-full sm:w-48 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md bg-white">
+                    <option value="publishDateDesc">發布日期 (最新)</option>
+                    <option value="publishDateAsc">發布日期 (最舊)</option>
+                    <option value="creationDateDesc">創作日期 (最新)</option>
+                    <option value="creationDateAsc">創作日期 (最舊)</option>
+                    <option value="titleAsc">標題 (A-Z)</option>
+                    <option value="titleDesc">標題 (Z-A)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+
+        <section id="author-intro" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
+            <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">作者介紹</h2>
+            <div class="flex flex-col md:flex-row items-center md:items-start gap-8">
+                <div class="flex-shrink-0">
+                    <img src="https://placehold.co/200x200/A78BFA/FFFFFF?text=作者照片" alt="作者照片" class="rounded-full w-48 h-48 object-cover shadow-lg border-4 border-purple-200">
+                </div>
+                <div class="text-center md:text-left flex-grow">
+                    <h3 class="text-3xl font-semibold text-gray-900 mb-4">張新正</h3>
+                    <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                        歡迎來到生活智慧篇！我是張新正，一位熱愛文字、分享生活感悟的創作者。
+                        這裡記錄了我對於親情、人生、自然、學習與創業等多元面向的思考與體驗。
+                        我希望透過這些文章，能為您的生活帶來一份啟發、一點溫暖，以及更多開啟智慧的可能。
+                    </p>
+                    <p class="text-md text-gray-600">
+                        期待與您一同探索生活中的美好與真諦。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="hot-articles" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
+            <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">熱門文章</h2>
+            <div id="hotArticlesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+            <p id="noHotArticlesMessage" class="text-center text-gray-500 mt-8 hidden">目前沒有熱門文章。</p>
+        </section>
+
+        <section id="category-cards" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
+            <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">文章類別</h2>
+            <div id="categoryCardsContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            </div>
+            <p id="noCategoryCardsMessage" class="text-center text-gray-500 mt-8 hidden">目前沒有文章類別。</p>
+        </section>
+
+        <div id="articleCategoriesContainer">
+            <p class="text-center text-xl text-gray-600 mt-16" id="loadingMessage">載入文章中，請稍候...</p>
+            <p class="text-center text-xl text-red-500 mt-16 hidden" id="errorMessage">載入文章失敗，請檢查您的 Google Apps Script URL 或網路連線。</p>
+        </div>
+    </main>
+
+    <div id="articleModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto relative transform scale-95 transition-transform duration-300">
+            <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-3xl font-bold transition duration-300">
+                &times;
+            </button>
+            <h3 id="modalTitle" class="text-3xl font-bold text-purple-700 mb-4 break-words"></h3>
+            <p class="text-sm text-gray-500 mb-4">
+                <span id="modalCategory" class="font-medium bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs mr-2"></span>
+                創作日期: <span id="modalCreationDate" class="font-medium"></span> | 發布日期: <span id="modalPublishDate" class="font-medium"></span>
+            </p>
+
+            <!-- 新增模式切換按鈕 -->
+            <!-- 預設為 hidden，只有當文章有 pdfUrl 時才會顯示 -->
+            <div class="flex justify-end mb-4">
+                <button id="toggleViewBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg flex items-center justify-center hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
+                    </svg>
+                    切換至圖片版
+                </button>
+            </div>
+
+            <!-- 內容顯示區域，根據模式切換顯示文字或 PDF -->
+            <div id="modalContentContainer">
+                <div id="modalContent" class="prose max-w-none text-gray-700 leading-relaxed mb-6">
+                    <!-- 文章文字內容將載入到這裡 -->
+                </div>
+                <iframe id="pdfViewer" class="pdf-viewer hidden" frameborder="0"></iframe>
+            </div>
+
+            <div class="flex items-center justify-start mt-6">
+                <button id="copyContentBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                    複製內容
+                </button>
+                <span id="copyStatusMessage" class="ml-4 text-green-600 hidden"></span>
+            </div>
+        </div>
+    </div> 
+
+    <script>
+        // 請將此替換為您自己的 Google Apps Script Web App 部署 URL
+        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGbY8XLr8gbvWD4quxYL7neCCiV81NoFpa-I9lCMFo5phRRJnvU341Ka1sEdUppyf5mA/exec';
+
+        // 固定的導航類別，這些將顯示在頂部導航欄中
+        const FIXED_CATEGORIES = [
+            '親情與人生',
+            '生活、樹木、緣份',
+            '教導與創業',
+            '孝道與開心',
+            '力量、健康、環保',
+            '學習與創作'
+        ];
+
+        let allArticles = [];
+        let allCategories = new Set(); 
+        let currentArticlePdfUrl = ''; // 用於儲存當前文章的 PDF URL
+        let isTextView = true; // 追蹤當前顯示模式，預設為文字版
+
+        const searchInput = document.getElementById('searchInput');
+        const sortSelect = document.getElementById('sortSelect');
+        const articleCategoriesContainer = document.getElementById('articleCategoriesContainer');
+        const hotArticlesContainer = document.getElementById('hotArticlesContainer');
+        const noHotArticlesMessage = document.getElementById('noHotArticlesMessage');
+        const categoryCardsContainer = document.getElementById('categoryCardsContainer');
+        const noCategoryCardsMessage = document.getElementById('noCategoryCardsMessage');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        const articleModal = document.getElementById('articleModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalCategory = document.getElementById('modalCategory');
+        const modalCreationDate = document.getElementById('modalCreationDate');
+        const modalPublishDate = document.getElementById('modalPublishDate');
+        const modalContent = document.getElementById('modalContent');
+        const pdfViewer = document.getElementById('pdfViewer'); // 新增 PDF 顯示 iframe
+        const toggleViewBtn = document.getElementById('toggleViewBtn'); // 新增切換按鈕
+        const copyContentBtn = document.getElementById('copyContentBtn');
+        const copyStatusMessage = document.getElementById('copyStatusMessage');
+
+        async function fetchArticles() {
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            // 檢查 GOOGLE_APPS_SCRIPT_URL 是否為空或仍是預留文字
+            if (!GOOGLE_APPS_SCRIPT_URL || GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                errorMessage.textContent = '錯誤：請在 JavaScript 程式碼中設定您的 Google Apps Script Web App URL。';
+                errorMessage.classList.remove('hidden');
+                loadingMessage.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+                }
+                const data = await response.json();
+                allArticles = data;
+                renderAllContent(allArticles, sortSelect.value); 
+            } catch (error) {
+                console.error("載入文章失敗:", error);
+                errorMessage.textContent = `載入文章失敗：${error.message}。請檢查您的 Apps Script URL 和部署。`;
+                errorMessage.classList.remove('hidden');
+                articleCategoriesContainer.innerHTML = '';
+                hotArticlesContainer.innerHTML = '';
+                categoryCardsContainer.innerHTML = '';
+            } finally {
+                loadingMessage.classList.add('hidden');
+            }
+        }
+
+        function renderAllContent(articlesToRender, currentSortOrder) {
+            const sortedArticles = sortArticles(articlesToRender, currentSortOrder);
+
+            renderHotArticles(sortedArticles);
+            renderCategorizedArticles(sortedArticles);
+            renderCategoryCards();
+            updateNavigation(); 
+        }
+
+        function sortArticles(articles, sortOrder) {
+            const sorted = [...articles]; 
+
+            switch (sortOrder) {
+                case 'publishDateDesc':
+                    sorted.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+                    break;
+                case 'publishDateAsc':
+                    sorted.sort((a, b) => new Date(a.publishDate) - new Date(b.publishDate));
+                    break;
+                case 'creationDateDesc':
+                    sorted.sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate));
+                    break;
+                case 'creationDateAsc':
+                    sorted.sort((a, b) => new Date(a.creationDate) - new Date(b.creationDate));
+                    break;
+                case 'titleAsc':
+                    sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                    break;
+                case 'titleDesc':
+                    sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+                    break;
+                default:
+                    sorted.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+                    break;
+            }
+            return sorted;
+        }
+
+        function renderHotArticles(articles) {
+            hotArticlesContainer.innerHTML = '';
+            const hotArticles = articles.filter(article => article.isHot);
+            if (hotArticles.length === 0) {
+                noHotArticlesMessage.classList.remove('hidden');
+            } else {
+                noHotArticlesMessage.classList.add('hidden');
+            }
+
+            hotArticles.forEach(article => {
+                const card = createArticleCard(article, true);
+                hotArticlesContainer.appendChild(card);
+            });
+        }
+
+        function renderCategorizedArticles(articlesToDisplay) {
+            articleCategoriesContainer.innerHTML = '';
+            allCategories.clear(); 
+
+            const categorized = articlesToDisplay.reduce((acc, article) => {
+                const category = article.category || '未分類';
+                if (!acc[category]) {
+                    acc[category] = [];
+                }
+                acc[category].push(article);
+                allCategories.add(category); 
+                return acc;
+            }, {});
+
+            FIXED_CATEGORIES.forEach(category => {
+                if (categorized[category] && categorized[category].length > 0) {
+                    const section = document.createElement('section');
+                    section.id = category.replace(/\s+/g, '-');
+                    section.classList.add('mb-12', 'bg-white', 'p-6', 'rounded-2xl', 'shadow-xl', 'transform', 'hover:scale-[1.005]','transition-transform', 'duration-300');
+
+                    const title = document.createElement('h2');
+                    title.classList.add('text-4xl', 'font-bold', 'text-center', 'text-purple-700', 'mb-8', 'pb-4', 'border-b-2', 'border-purple-300');
+                    title.textContent = category;
+                    section.appendChild(title);
+
+                    const articlesGrid = document.createElement('div');
+                    articlesGrid.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-8');
+
+                    categorized[category].forEach(article => {
+                        const card = createArticleCard(article);
+                        articlesGrid.appendChild(card);
+                    });
+                    section.appendChild(articlesGrid);
+                    articleCategoriesContainer.appendChild(section);
+                }
+            });
+        }
+
+
+        function renderCategoryCards() {
+            categoryCardsContainer.innerHTML = '';
+
+            if (FIXED_CATEGORIES.length === 0) {
+                noCategoryCardsMessage.classList.remove('hidden');
+                return;
+            } else {
+                noCategoryCardsMessage.classList.add('hidden');
+            }
+
+            FIXED_CATEGORIES.forEach(category => {
+                const categoryCard = document.createElement('div');
+                categoryCard.classList.add(
+                    'bg-white', 'rounded-lg', 'shadow-md', 'p-4', 'flex', 'flex-col', 'items-center',
+                    'justify-center', 'text-center', 'cursor-pointer', 'hover:shadow-xl',
+                    'hover:border-indigo-400', 'border', 'border-gray-200',
+                    'transform', 'hover:-translate-y-1', 'transition-all', 'duration-300'
+                );
+
+                const categoryName = document.createElement('h3');
+                categoryName.classList.add('text-lg', 'font-semibold', 'text-indigo-800', 'truncate', 'w-full');
+                categoryName.textContent = category;
+                categoryCard.appendChild(categoryName);
+
+                categoryCard.addEventListener('click', () => {
+                    const targetId = category.replace(/\s+/g, '-');
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+
+                categoryCardsContainer.appendChild(categoryCard);
+            });
+        }
+
+        function createArticleCard(article, isHotArticle = false, searchQuery = '') {
+            const card = document.createElement('div');
+            card.classList.add(
+                'bg-white', 'rounded-lg', 'shadow-md', 'p-6', 'flex', 'flex-col', 'justify-between',
+                'h-full', 'hover:shadow-xl', 'hover:border-purple-400', 'border', 'border-gray-200',
+                'transform', 'hover:-translate-y-1', 'transition-all', 'duration-300'
+            );
+            if (isHotArticle === true) { 
+                card.classList.add('border-purple-500');
+            }
+
+            const title = document.createElement('h3');
+            title.classList.add('text-xl', 'font-semibold', 'text-gray-900', 'mb-2', 'break-words');
+            title.innerHTML = highlightKeyword(article.title, searchQuery);
+
+            const summary = document.createElement('p');
+            summary.classList.add('text-gray-600', 'text-sm', 'mb-4', 'flex-grow', 'overflow-hidden', 'line-clamp-3');
+            summary.innerHTML = highlightKeyword(article.summary, searchQuery);
+
+            const footer = document.createElement('div');
+            footer.classList.add('flex', 'flex-col', 'sm:flex-row', 'justify-between', 'items-start', 'sm:items-center', 'text-xs', 'text-gray-500', 'mt-4');
+
+            const dates = document.createElement('span');
+            dates.innerHTML = `創作: ${article.creationDate || 'N/A'} | 發布: ${article.publishDate || 'N/A'}`;
+            footer.appendChild(dates);
+
+            const categoryTag = document.createElement('span');
+            categoryTag.classList.add('mt-2', 'sm:mt-0', 'px-2', 'py-1', 'bg-blue-100', 'text-blue-700', 'rounded-full', 'font-medium');
+            categoryTag.textContent = article.category || '未分類';
+            footer.appendChild(categoryTag);
+
+            card.appendChild(title);
+            card.appendChild(summary);
+            card.appendChild(footer);
+
+            card.addEventListener('click', () => openArticleModal(article));
+
+            return card;
+        }
+
+        function openArticleModal(article) {
+            modalTitle.textContent = article.title;
+            modalCategory.textContent = article.category || '未分類';
+            modalCreationDate.textContent = article.creationDate || 'N/A';
+            modalPublishDate.textContent = article.publishDate || 'N/A';
+            modalContent.innerHTML = article.content || '無內容。';
+            copyContentBtn.onclick = () => copyToClipboard(article.content);
+            
+            // 儲存 PDF URL
+            currentArticlePdfUrl = article.pdfUrl || ''; // 確保您的 Google Sheet 中有 'pdfUrl' 欄位，並且包含有效的 PDF 連結
+            console.log('Current Article PDF URL:', currentArticlePdfUrl); // 新增的除錯日誌
+
+            // 根據是否有 PDF URL 決定是否顯示切換按鈕
+            if (currentArticlePdfUrl) {
+                toggleViewBtn.classList.remove('hidden');
+                toggleViewBtn.textContent = '切換至圖片版';
+                toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
+                    </svg>切換至圖片版`;
+            } else {
+                toggleViewBtn.classList.add('hidden');
+            }
+
+            // 預設顯示文字版
+            isTextView = true;
+            modalContent.classList.remove('hidden');
+            pdfViewer.classList.add('hidden');
+            pdfViewer.src = ''; // 清空 iframe src
+
+            articleModal.classList.remove('hidden');
+            setTimeout(() => {
+                articleModal.classList.add('opacity-100');
+                articleModal.querySelector('div').classList.remove('scale-95');
+                articleModal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            articleModal.classList.remove('opacity-100');
+            articleModal.querySelector('div').classList.remove('scale-100');
+            articleModal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                articleModal.classList.add('hidden');
+                pdfViewer.src = ''; // 關閉時清空 PDF 載入
+            }, 300);
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                copyStatusMessage.textContent = '已複製！';
+                copyStatusMessage.classList.remove('hidden');
+                setTimeout(() => { copyStatusMessage.classList.add('hidden'); }, 2000);
+            } catch (err) {
+                console.error('無法複製內容: ', err);
+                copyStatusMessage.textContent = '複製失敗！';
+                copyStatusMessage.classList.remove('hidden');
+                copyStatusMessage.classList.add('text-red-600');
+                setTimeout(() => { copyStatusMessage.classList.add('hidden'); copyStatusMessage.classList.remove('text-red-600'); }, 2000);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // 切換文字版/圖片版功能
+        toggleViewBtn.addEventListener('click', () => {
+            if (isTextView) {
+                // 切換到圖片版
+                if (currentArticlePdfUrl) {
+                    modalContent.classList.add('hidden');
+                    pdfViewer.src = currentArticlePdfUrl;
+                    pdfViewer.classList.remove('hidden');
+                    toggleViewBtn.textContent = '切換至文字版';
+                    toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>切換至文字版`;
+                    isTextView = false;
+                } else {
+                    // 如果沒有 PDF URL，可以給出提示或禁用按鈕
+                    copyStatusMessage.textContent = '此文章沒有圖片版。';
+                    copyStatusMessage.classList.remove('hidden');
+                    copyStatusMessage.classList.add('text-red-600');
+                    setTimeout(() => { copyStatusMessage.classList.add('hidden'); copyStatusMessage.classList.remove('text-red-600'); }, 3000);
+                }
+            } else {
+                // 切換到文字版
+                pdfViewer.classList.add('hidden');
+                pdfViewer.src = ''; // 清空 iframe src
+                modalContent.classList.remove('hidden');
+                toggleViewBtn.textContent = '切換至圖片版';
+                toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
+                    </svg>切換至圖片版`;
+                isTextView = true;
+            }
+        });
+
+        searchInput.addEventListener('keyup', (event) => {
+            const query = event.target.value.toLowerCase().trim();
+            if (query === '') {
+                renderAllContent(allArticles, sortSelect.value); 
+                return;
+            }
+
+            const filteredArticles = allArticles.filter(article => {
+                return (article.title && article.title.toLowerCase().includes(query)) ||
+                       (article.summary && article.summary.toLowerCase().includes(query)) ||
+                       (article.content && article.content.toLowerCase().includes(query));
+            });
+
+            renderAllContent(filteredArticles, sortSelect.value);
+
+            categoryCardsContainer.innerHTML = '';
+            noCategoryCardsMessage.classList.remove('hidden');
+        });
+
+        sortSelect.addEventListener('change', (event) => {
+            const currentQuery = searchInput.value.toLowerCase().trim();
+            let articlesToRender = allArticles;
+
+            if (currentQuery !== '') {
+                articlesToRender = allArticles.filter(article => {
+                    return (article.title && article.title.toLowerCase().includes(currentQuery)) ||
+                           (article.summary && article.summary.toLowerCase().includes(currentQuery)) ||
+                           (article.content && article.content.toLowerCase().includes(currentQuery));
+                });
+            }
+            renderAllContent(articlesToRender, event.target.value);
+            
+            if (currentQuery === '') {
+                renderCategoryCards();
+            } else {
+                categoryCardsContainer.innerHTML = '';
+                noCategoryCardsMessage.classList.remove('hidden');
+            }
+        });
+
+        function highlightKeyword(text, keyword) {
+            if (!keyword || !text) return text;
+            const regex = new RegExp(`(${keyword})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function updateNavigation() {
+            const nav = document.querySelector('header nav');
+            nav.querySelectorAll('a:not([href="#author-intro"]):not([href="#hot-articles"]):not([href="#category-cards"])').forEach(link => link.remove());
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchArticles();
+            closeModalBtn.addEventListener('click', closeModal);
+            articleModal.addEventListener('click', (e) => {
+                if (e.target === articleModal) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
