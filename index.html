@@ -2,11 +2,11 @@
 <!-- Application Structure Plan: The application is structured as a single-page scrolling experience, designed for intuitive content exploration and synthesis.
 1. Header: Contains the site title ("生活智慧篇"), global search, and sorting controls. It also includes functional navigation links (Author Intro, Hot Articles, Category Cards, and dynamic links for actual content categories). This serves as a constant point of interaction and navigation.
 2. Author Introduction Section: Placed at the very top, immediately visible. Its goal is to provide a personal context and connection for the user, introducing the "voice" behind the articles. This qualitative insight (author persona) is presented simply with text and a placeholder image, making it easily consumable. Now includes an email comment button.
-3. Catalog Section: NEW - Placed between Author Introduction and Hot Articles. Its goal is to provide a direct view of the article catalog in PDF format.
+3. Catalog Section: NEW - Placed between Author Introduction and Hot Articles. Its goal is to provide a direct view of the article catalog by linking to the PDF. The iframe has been replaced with a button due to browser security restrictions (ERR_BLOCKED_BY_RESPONSE), and now the link is fetched dynamically from the Google Sheet. The button now has a loading state to prevent premature clicks.
 4. Hot Articles Section: Follows the author intro. Its goal is to highlight popular or recommended content to immediately engage the user. It presents key textual content (article title, summary) as interactive cards, allowing direct access to full article details. Users interact by clicking cards.
 5. Category Cards Section: Placed below hot articles. Its goal is to facilitate thematic exploration. It presents discrete categories as clickable cards, allowing users to quickly navigate to specific article groupings. This provides an organized way to explore content based on interest.
 6. Categorized Article Sections: Dynamically generated sections for each distinct article category found in the Google Sheet. Their goal is to organize articles by theme, making it easy to browse. Articles are displayed as interactive cards (textual content: title, summary, dates), leading to a modal.
-7. Article Detail Modal: A modal overlay triggered by clicking an article card. Its goal is to provide full article content without leaving the single page. It features interaction points: copying content, **an integrated text/image version toggle button**, and **a separate PDF download button**.
+7. Article Detail Modal: A modal overlay triggered by clicking an article card. Its goal is to provide full article content without leaving the single page. It features interaction points: copying content, an integrated text/image version toggle button, and a separate PDF download button.
 8. Removed Article Summary (AI-generated) functionality as per user's preference for simplification.
 
 The structure prioritizes: Discoverability (Hot articles and category cards immediately guide users), Navigability (Sticky header and smooth scrolling links), Consumability (Card layouts for quick scanning, modal for focused reading with visual context and PDF download), and Flexibility (Search and sort functionalities allow for personalized exploration paths). -->
@@ -19,7 +19,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
 - Search Functionality: Explore, Filter -> Input field with text highlighting -> Keyup event to filter and re-render -> Allows users to find specific content quickly -> Vanilla JS, HTML, Tailwind.
 - Sorting Functionality: Organize, Customize -> Dropdown selector -> Change event to re-render sorted articles -> Empowers users to view content based on their preference -> Vanilla JS, HTML, Tailwind.
 - Author Introduction: Inform, Connect -> Static text block with image placeholder -> Passive consumption -> Provides context and builds rapport. Now includes an email link. -> HTML, Tailwind.
-- Catalog PDF: Inform, Browse -> Embedded PDF viewer -> Directly view catalog -> Provides structured overview of all articles. -> HTML, Tailwind. -->
+- Catalog PDF: Inform, Browse -> A clickable button that opens the PDF in a new tab. Now with a loading state. -> Provides a direct link to the structured overview of all articles. -> HTML, Tailwind. -->
 <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 <!DOCTYPE html>
 <html lang="zh-Hant" class="scroll-smooth">
@@ -88,18 +88,18 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         .content-pre-wrap {
             white-space: pre-wrap; /* 保留空格和換行，並自動換行 */
         }
-
-        /* 新增的目錄 PDF 顯示樣式 */
-        .catalog-pdf-viewer {
-            width: 100%;
-            height: 800px; /* 設置一個較大的固定高度，確保足夠顯示內容 */
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        /* 目錄按鈕載入狀態樣式 */
+        .catalog-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            animation: pulse 2s infinite;
         }
-        @media (min-width: 768px) {
-            .catalog-pdf-viewer {
-                height: 1000px; /* 在桌面版上可以更高 */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 0.3;
             }
         }
     </style>
@@ -114,6 +114,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             </h1>
             <nav class="space-x-4 flex-grow text-center md:text-right">
                 <a href="#author-intro" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">作者介紹</a>
+                <a href="#catalog-section" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">文章目錄</a>
                 <a href="#hot-articles" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">熱門文章</a>
                 <a href="#category-cards" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">文章類別</a>
                 <!-- 其他類別導航將由JS動態生成 -->
@@ -154,7 +155,8 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                         期待與您一同探索生活中的美好與真諦。
                     </p>
                     <!-- 新增的電郵留言功能 -->
-                    <a href="mailto:jphahappy@yahoo.com.hk=關於生活智慧篇網站的留言" 
+                    <!-- *** 提醒：請將 '您的電郵地址@example.com' 替換為您的實際電郵地址 *** -->
+                    <a href="jphahappy@yahoo.com.hk" 
                        class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
@@ -162,12 +164,11 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                         </svg>
                         電郵留言
                     </a>
-                    <!-- 記得將 'jphahappy@yahoo.com.hk' 替換為您的實際電郵地址 -->
                 </div>
             </div>
         </section>
 
-         <!-- 目錄 PDF 區塊 - 已從 Google Sheet 動態讀取連結 -->
+        <!-- 目錄 PDF 區塊 - 已從 Google Sheet 動態讀取連結 -->
         <section id="catalog-section" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
             <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">文章目錄</h2>
             <div class="flex justify-center">
@@ -184,6 +185,15 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             </div>
         </section>
 
+        <!-- 熱門文章區 -->
+        <section id="hot-articles" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
+            <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">熱門文章</h2>
+            <div id="hotArticlesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 熱門文章將在此處動態載入 -->
+            </div>
+            <p id="noHotArticlesMessage" class="text-center text-gray-500 mt-8 hidden">目前沒有熱門文章。</p>
+        </section>
+
         <!-- 文章類別卡片區塊 -->
         <section id="category-cards" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
             <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">文章類別</h2>
@@ -195,8 +205,10 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
 
         <!-- 文章類別分區 (由 JavaScript 動態生成) -->
         <div id="articleCategoriesContainer">
+            <!-- 載入中的提示文字 -->
             <p class="text-center text-xl text-gray-600 mt-16" id="loadingMessage">載入文章中，請稍候...</p>
-            <p class="text-center text-xl text-red-500 mt-16 hidden" id="errorMessage">載入文章失敗，請檢查您的 Google Apps Script URL 或網路連線。</p>
+            <!-- 錯誤訊息的提示文字 -->
+            <p class="text-center text-xl text-red-500 mt-16 hidden" id="errorMessage"></p>
         </div>
     </main>
 
@@ -258,10 +270,6 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         // *** 重要：請將此處的 URL 替換為您自己的 Apps Script URL ***
         const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGbY8XLr8gbvWD4quxYL7neCCiV81NoFpa-I9lCMFo5phRRJnvU341Ka1sEdUppyf5mA/exec';
 
-        // 設定目錄 PDF 的 URL
-        // *** 重要：請將此處的 URL 替換為您上傳到 GitHub 的「0. 目錄.pdf」檔案的直接連結 (Raw URL) ***
-        const CATALOG_PDF_URL = 'https://raw.githubusercontent.com/jessicapun/LifeWisdom/main/0.%20%E7%9B%AE%E9%8C%84.pdf';
-
         // 定義固定的文章類別列表 (與 HTML 菜單一致)
         const FIXED_CATEGORIES = [
             '親情與人生',
@@ -287,6 +295,8 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         const noCategoryCardsMessage = document.getElementById('noCategoryCardsMessage');
         const loadingMessage = document.getElementById('loadingMessage');
         const errorMessage = document.getElementById('errorMessage');
+        const catalogPdfBtn = document.getElementById('catalogPdfBtn'); // 目錄按鈕
+        const loadingSpinner = document.getElementById('loadingSpinner');
 
         const articleModal = document.getElementById('articleModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
@@ -302,16 +312,28 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         const copyContentBtn = document.getElementById('copyContentBtn');
         const copyStatusMessage = document.getElementById('copyStatusMessage');
         const downloadPdfBtn = document.getElementById('downloadPdfBtn'); // 下載 PDF 按鈕
-        const catalogPdfViewer = document.getElementById('catalogPdfViewer'); // 目錄 PDF 顯示 iframe
 
         // 載入文章數據
         async function fetchArticles() {
+            console.log("開始載入文章...");
             loadingMessage.classList.remove('hidden');
             errorMessage.classList.add('hidden');
+            
+            // 處理目錄按鈕的載入狀態
+            catalogPdfBtn.classList.add('catalog-loading');
+            catalogPdfBtn.href = '#';
+            catalogPdfBtn.innerHTML = `<svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>載入中...`;
+
             if (!GOOGLE_APPS_SCRIPT_URL || GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
                 errorMessage.textContent = '錯誤：請在 JavaScript 程式碼中設定您的 Google Apps Script Web App URL。';
                 errorMessage.classList.remove('hidden');
                 loadingMessage.classList.add('hidden');
+                // 處理按鈕的錯誤狀態
+                catalogPdfBtn.classList.remove('catalog-loading');
+                catalogPdfBtn.textContent = '載入失敗';
                 return;
             }
 
@@ -321,15 +343,50 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                     throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
                 }
                 const data = await response.json();
-                allArticles = data;
+                
+                // --- 目錄 URL 處理邏輯開始 ---
+                let catalogPdfUrl = data.catalogPdfUrl; // 優先尋找專門的 catalogPdfUrl 欄位
+
+                // 如果找不到，則在文章列表中尋找名為 '0. 目錄' 的文章，並使用它的 imageUrl
+                if (!catalogPdfUrl && Array.isArray(data.articles)) {
+                    const catalogArticle = data.articles.find(article => article.title && article.title.includes('0. 目錄'));
+                    if (catalogArticle) {
+                        catalogPdfUrl = catalogArticle.imageUrl;
+                    }
+                }
+
+                // 如果上述都失敗，則使用一個備用的 GitHub URL
+                if (!catalogPdfUrl) {
+                    catalogPdfUrl = 'https://raw.githubusercontent.com/jessicapun/LifeWisdom/main/0.%20%E7%9B%AE%E9%8C%84.pdf';
+                }
+
+                // 設定目錄按鈕的 href 屬性並移除載入狀態
+                catalogPdfBtn.href = catalogPdfUrl;
+                catalogPdfBtn.classList.remove('catalog-loading');
+                catalogPdfBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 2h4v2H6V6zm2 4H6v2h2v-2zm2 0h-2v2h2v-2zm2 0h-2v2h2v-2z" clip-rule="evenodd" />
+                    </svg>開啟文章目錄 (PDF)`;
+
+                allArticles = data.articles || data; // 兼容兩種回傳格式
+                
+                // 確保 articles 是陣列
+                if (!Array.isArray(allArticles)) {
+                    throw new Error('回傳的數據格式不正確，找不到文章列表。');
+                }
+
                 renderAllContent(allArticles, sortSelect.value); 
             } catch (error) {
                 console.error("載入文章失敗:", error);
-                errorMessage.textContent = `載入文章失敗：${error.message}。請檢查您的 Apps Script URL 和部署。`;
+                errorMessage.textContent = `載入文章失敗：${error.message}。請檢查您的 Apps Script URL 或網路連線。`;
                 errorMessage.classList.remove('hidden');
                 articleCategoriesContainer.innerHTML = '';
                 hotArticlesContainer.innerHTML = '';
                 categoryCardsContainer.innerHTML = '';
+                
+                // 即使失敗，也要讓按鈕顯示為失敗狀態
+                catalogPdfBtn.classList.remove('catalog-loading');
+                catalogPdfBtn.href = '#';
+                catalogPdfBtn.textContent = '載入失敗';
             } finally {
                 loadingMessage.classList.add('hidden');
             }
@@ -341,10 +398,6 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             renderHotArticles(sortedArticles);
             renderCategorizedArticles(sortedArticles);
             renderCategoryCards();
-            // 載入目錄 PDF
-            if (catalogPdfViewer && CATALOG_PDF_URL) {
-                catalogPdfViewer.src = CATALOG_PDF_URL;
-            }
         }
 
         function sortArticles(articles, sortOrder) {
@@ -605,7 +658,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                     };
                     modalImageContainer.classList.remove('hidden');
                     noImageMessage.classList.add('hidden'); // 隱藏無圖片訊息
-                    toggleViewBtn.textContent = '切換至文字版';
+                    toggleViewBtn.textContent = '切換至圖片版';
                     toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                         <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
@@ -696,7 +749,3 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
     </script>
 </body>
 </html>
-
-
-
-
