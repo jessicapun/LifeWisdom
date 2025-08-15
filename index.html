@@ -1,21 +1,25 @@
 <!-- Chosen Palette: Calm Harmony Palette -->
 <!-- Application Structure Plan: The application is structured as a single-page scrolling experience, designed for intuitive content exploration and synthesis.
 1. Header: Contains the site title ("生活智慧篇"), global search, and sorting controls. It also includes functional navigation links (Author Intro, Hot Articles, Category Cards, and dynamic links for actual content categories). This serves as a constant point of interaction and navigation.
-2. Author Introduction Section: Placed at the very top, immediately visible. Its goal is to provide a personal context and connection for the user, introducing the "voice" behind the articles. This qualitative insight (author persona) is presented simply with text and a placeholder image, making it easily consumable.
-3. Hot Articles Section: Follows the author intro. Its goal is to highlight popular or recommended content to immediately engage the user. It presents key textual content (article title, summary) as interactive cards, allowing direct access to full article details. Users interact by clicking cards.
-4. Category Cards Section: Placed below hot articles. Its goal is to facilitate thematic exploration. It presents discrete categories as clickable cards, allowing users to quickly navigate to specific article groupings. This provides an organized way to explore content based on interest.
-5. Categorized Article Sections: Dynamically generated sections for each distinct article category found in the Google Sheet. Their goal is to organize articles by theme, making it easy to browse. Articles are displayed as interactive cards (textual content: title, summary, dates), leading to a modal.
-6. Article Detail Modal: A modal overlay triggered by clicking an article card. Its goal is to provide full article content without leaving the single page. It features interaction points: copying content, and now, switching between text and image versions. (Summary removed in this option)
+2. Author Introduction Section: Placed at the very top, immediately visible. Its goal is to provide a personal context and connection for the user, introducing the "voice" behind the articles. This qualitative insight (author persona) is presented simply with text and a placeholder image, making it easily consumable. Now includes an email comment button.
+3. Catalog Section: NEW - Placed between Author Introduction and Hot Articles. Its goal is to provide a direct view of the article catalog in PDF format.
+4. Hot Articles Section: Follows the author intro. Its goal is to highlight popular or recommended content to immediately engage the user. It presents key textual content (article title, summary) as interactive cards, allowing direct access to full article details. Users interact by clicking cards.
+5. Category Cards Section: Placed below hot articles. Its goal is to facilitate thematic exploration. It presents discrete categories as clickable cards, allowing users to quickly navigate to specific article groupings. This provides an organized way to explore content based on interest.
+6. Categorized Article Sections: Dynamically generated sections for each distinct article category found in the Google Sheet. Their goal is to organize articles by theme, making it easy to browse. Articles are displayed as interactive cards (textual content: title, summary, dates), leading to a modal.
+7. Article Detail Modal: A modal overlay triggered by clicking an article card. Its goal is to provide full article content without leaving the single page. It features interaction points: copying content, **an integrated text/image version toggle button**, and **a separate PDF download button**.
+8. Removed Article Summary (AI-generated) functionality as per user's preference for simplification.
 
-The structure prioritizes: Discoverability (Hot articles and category cards immediately guide users), Navigability (Sticky header and smooth scrolling links), Consumability (Card layouts for quick scanning, modal for focused reading), and Flexibility (Search and sort functionalities allow for personalized exploration paths). -->
+The structure prioritizes: Discoverability (Hot articles and category cards immediately guide users), Navigability (Sticky header and smooth scrolling links), Consumability (Card layouts for quick scanning, modal for focused reading with visual context and PDF download), and Flexibility (Search and sort functionalities allow for personalized exploration paths). -->
 <!-- Visualization & Content Choices:
 - All Articles Data: Inform, Organize -> List of interactive cards -> Click to open modal, Filter via search, Sort via dropdown -> Provides structured browsing and detail access -> Vanilla JS, HTML, Tailwind.
 - Hot Articles: Inform, Highlight -> Subset of interactive cards -> Click to open modal -> Emphasizes key content immediately -> Vanilla JS, HTML, Tailwind.
 - Article Categories: Organize, Navigate -> Clickable category cards -> Click to smooth scroll -> Facilitates thematic content discovery and non-linear exploration -> Vanilla JS, HTML, Tailwind.
-- Article Details (Textual): Inform, Deep Dive -> Modal display of full text -> Copy button. (Summary generation removed) -> Enables detailed reading and content reuse. -> Vanilla JS, HTML, Tailwind.
+- Article Details (Textual/Image Toggle): Inform, Deep Dive -> Modal display of full text and/or image -> Copy button, Integrated Toggle button for text/image -> Enables detailed reading with visual context and content reuse. -> Vanilla JS, HTML, Tailwind.
+- PDF Download: Access, Convenience -> Button in modal -> Click to open PDF in new tab -> Provides alternative access to full article content. -> Vanilla JS, HTML, Tailwind.
 - Search Functionality: Explore, Filter -> Input field with text highlighting -> Keyup event to filter and re-render -> Allows users to find specific content quickly -> Vanilla JS, HTML, Tailwind.
 - Sorting Functionality: Organize, Customize -> Dropdown selector -> Change event to re-render sorted articles -> Empowers users to view content based on their preference -> Vanilla JS, HTML, Tailwind.
-- Author Introduction: Inform, Connect -> Static text block with image placeholder -> Passive consumption -> Provides context and builds rapport -> HTML, Tailwind. -->
+- Author Introduction: Inform, Connect -> Static text block with image placeholder -> Passive consumption -> Provides context and builds rapport. Now includes an email link. -> HTML, Tailwind.
+- Catalog PDF: Inform, Browse -> Embedded PDF viewer -> Directly view catalog -> Provides structured overview of all articles. -> HTML, Tailwind. -->
 <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 <!DOCTYPE html>
 <html lang="zh-Hant" class="scroll-smooth">
@@ -23,11 +27,22 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>生活智慧篇 - 文章作品集</title>
+    <!-- Google Fonts for Chinese Calligraphy Style (Ma Shan Zheng) and Readable Body Font (Noto Sans TC) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html {
+            /* 使用 Inter 作為主要字體，並提供常用中文字體作為後備 */
             font-family: 'Inter', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
         }
+        /* 將「馬山正」字體應用於標題 */
+        h1, h2, h3 {
+            font-family: 'Ma Shan Zheng', 'Noto Sans TC', sans-serif;
+        }
+        /* 自定義滾動條樣式，使其更美觀 */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -42,24 +57,26 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        /* 關鍵字高亮樣式 */
         .highlight {
-            background-color: #fce303;
+            background-color: #fce303; /* 醒目的黃色 */
             font-weight: bold;
         }
+        /* 隱藏滾動條但允許滾動 */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
         .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 600px; /* Max width for chart container */
+            max-width: 600px; /* 圖表容器的最大寬度 */
             margin-left: auto;
             margin-right: auto;
-            height: 300px; /* Base height, adjust with media queries */
+            height: 300px; /* 基本高度，根據媒體查詢調整 */
             max-height: 400px;
         }
         @media (min-width: 768px) {
@@ -67,16 +84,29 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                 height: 350px;
             }
         }
-        /* Style for the PDF iframe to ensure it fills the modal content area */
-        .pdf-viewer {
+        /* 保留內容中空格和換行的自定義樣式 */
+        .content-pre-wrap {
+            white-space: pre-wrap; /* 保留空格和換行，並自動換行 */
+        }
+
+        /* 新增的目錄 PDF 顯示樣式 */
+        .catalog-pdf-viewer {
             width: 100%;
-            height: 70vh; /* Adjust height as needed to fit within the modal */
-            border: none;
+            height: 800px; /* 設置一個較大的固定高度，確保足夠顯示內容 */
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        @media (min-width: 768px) {
+            .catalog-pdf-viewer {
+                height: 1000px; /* 在桌面版上可以更高 */
+            }
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 text-gray-800">
 
+    <!-- 頂部導航/標題區 -->
     <header class="bg-white shadow-lg p-4 sticky top-0 z-50 rounded-b-xl">
         <div class="container mx-auto flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl md:text-5xl font-extrabold text-purple-700 mb-4 md:mb-0 transform hover:scale-105 transition-transform duration-300">
@@ -86,10 +116,12 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                 <a href="#author-intro" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">作者介紹</a>
                 <a href="#hot-articles" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">熱門文章</a>
                 <a href="#category-cards" class="text-lg font-medium text-gray-600 hover:text-purple-700 transition duration-300 hover:underline">文章類別</a>
+                <!-- 其他類別導航將由JS動態生成 -->
             </nav>
-            <div class="mt-4 md:mt-0 md:ml-6 flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-                <input type="text" id="searchInput" placeholder="搜尋文章..." class="p-3 border border-gray-300 rounded-full w-full sm:w-64 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md">
-                <select id="sortSelect" class="p-3 border border-gray-300 rounded-full w-full sm:w-48 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md bg-white">
+            <div class="mt-4 md:mt-0 md:ml-6 w-full md:w-auto">
+                <input type="text" id="searchInput" placeholder="搜尋文章..." class="p-3 border border-gray-300 rounded-full w-full md:w-64 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md">
+                <!-- 新增排序選擇器 -->
+                <select id="sortSelect" class="p-3 border border-gray-300 rounded-full w-full sm:w-48 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-300 shadow-md bg-white mt-2 md:mt-0 md:ml-4">
                     <option value="publishDateDesc">發布日期 (最新)</option>
                     <option value="publishDateAsc">發布日期 (最舊)</option>
                     <option value="creationDateDesc">創作日期 (最新)</option>
@@ -101,8 +133,10 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         </div>
     </header>
 
+    <!-- 主要內容區塊 -->
     <main class="container mx-auto px-4 py-8">
 
+        <!-- 作者介紹區塊 -->
         <section id="author-intro" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
             <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">作者介紹</h2>
             <div class="flex flex-col md:flex-row items-center md:items-start gap-8">
@@ -119,30 +153,54 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                     <p class="text-md text-gray-600">
                         期待與您一同探索生活中的美好與真諦。
                     </p>
+                    <!-- 新增的電郵留言功能 -->
+                    <a href="mailto:您的電郵地址@example.com?subject=關於生活智慧篇網站的留言" 
+                       class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        電郵留言
+                    </a>
+                    <!-- 記得將 '您的電郵地址@example.com' 替換為您的實際電郵地址 -->
                 </div>
             </div>
         </section>
 
+        <!-- 目錄 PDF 區塊 -->
+        <section id="catalog-section" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
+            <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">文章目錄</h2>
+            <div class="flex justify-center">
+                <iframe id="catalogPdfViewer" class="catalog-pdf-viewer" frameborder="0"></iframe>
+            </div>
+        </section>
+
+        <!-- 熱門文章區 -->
         <section id="hot-articles" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
             <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">熱門文章</h2>
             <div id="hotArticlesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 熱門文章將在此處動態載入 -->
             </div>
             <p id="noHotArticlesMessage" class="text-center text-gray-500 mt-8 hidden">目前沒有熱門文章。</p>
         </section>
 
+        <!-- 文章類別卡片區塊 -->
         <section id="category-cards" class="mb-12 bg-white p-6 rounded-2xl shadow-xl transform hover:scale-[1.005] transition-transform duration-300">
             <h2 class="text-4xl font-bold text-center text-purple-700 mb-8 pb-4 border-b-2 border-purple-300">文章類別</h2>
             <div id="categoryCardsContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <!-- 類別卡片將在此處動態載入 -->
             </div>
             <p id="noCategoryCardsMessage" class="text-center text-gray-500 mt-8 hidden">目前沒有文章類別。</p>
         </section>
 
+        <!-- 文章類別分區 (由 JavaScript 動態生成) -->
         <div id="articleCategoriesContainer">
             <p class="text-center text-xl text-gray-600 mt-16" id="loadingMessage">載入文章中，請稍候...</p>
             <p class="text-center text-xl text-red-500 mt-16 hidden" id="errorMessage">載入文章失敗，請檢查您的 Google Apps Script URL 或網路連線。</p>
         </div>
     </main>
 
+    <!-- 文章詳情彈窗/Modal -->
     <div id="articleModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto relative transform scale-95 transition-transform duration-300">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-3xl font-bold transition duration-300">
@@ -153,24 +211,17 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                 <span id="modalCategory" class="font-medium bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs mr-2"></span>
                 創作日期: <span id="modalCreationDate" class="font-medium"></span> | 發布日期: <span id="modalPublishDate" class="font-medium"></span>
             </p>
-
-            <!-- 新增模式切換按鈕 -->
-            <!-- 預設為 hidden，只有當文章有 pdfUrl 時才會顯示 -->
-            <div class="flex justify-end mb-4">
-                <button id="toggleViewBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg flex items-center justify-center hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
-                    </svg>
-                    切換至圖片版
-                </button>
-            </div>
-
-            <!-- 內容顯示區域，根據模式切換顯示文字或 PDF -->
+            
+            <!-- 內容顯示區域：文字內容或圖片顯示區 -->
             <div id="modalContentContainer">
-                <div id="modalContent" class="prose max-w-none text-gray-700 leading-relaxed mb-6">
+                <div id="modalContent" class="prose max-w-none text-gray-700 leading-relaxed mb-6 content-pre-wrap">
                     <!-- 文章文字內容將載入到這裡 -->
                 </div>
-                <iframe id="pdfViewer" class="pdf-viewer hidden" frameborder="0"></iframe>
+                <!-- 圖片顯示區 -->
+                <div id="modalImageContainer" class="mb-6 hidden">
+                    <img id="modalImage" src="" alt="文章圖片" class="max-w-full h-auto rounded-lg shadow-lg mx-auto">
+                    <p id="noImageMessage" class="text-center text-gray-500 mt-4 hidden">此文章無圖片。</p>
+                </div>
             </div>
 
             <div class="flex items-center justify-start mt-6">
@@ -182,15 +233,36 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                     複製內容
                 </button>
                 <span id="copyStatusMessage" class="ml-4 text-green-600 hidden"></span>
+
+                <!-- 圖片/文字切換按鈕，放置在複製內容按鈕旁邊 -->
+                <button id="toggleViewBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg flex items-center justify-center ml-4 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
+                    </svg>
+                    切換至圖片版
+                </button>
+
+                <!-- 下載 PDF 按鈕，放置在圖片切換按鈕旁邊 -->
+                <a id="downloadPdfBtn" href="#" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 shadow-lg flex items-center justify-center ml-4 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    下載 PDF
+                </a>
             </div>
         </div>
     </div> 
 
     <script>
-        // 請將此替換為您自己的 Google Apps Script Web App 部署 URL
+        // 設定您的 Google Apps Script Web App 部署 URL
+        // *** 重要：請將此處的 URL 替換為您自己的 Apps Script URL ***
         const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGbY8XLr8gbvWD4quxYL7neCCiV81NoFpa-I9lCMFo5phRRJnvU341Ka1sEdUppyf5mA/exec';
 
-        // 固定的導航類別，這些將顯示在頂部導航欄中
+        // 設定目錄 PDF 的 URL
+        // *** 重要：請將此處的 URL 替換為您上傳到 GitHub 的「0. 目錄.pdf」檔案的直接連結 (Raw URL) ***
+        const CATALOG_PDF_URL = 'https://raw.githubusercontent.com/jessicapun/LifeWisdom/main/0.%20%E7%9B%AE%E9%8C%84.pdf';
+
+        // 定義固定的文章類別列表 (與 HTML 菜單一致)
         const FIXED_CATEGORIES = [
             '親情與人生',
             '生活、樹木、緣份',
@@ -202,6 +274,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
 
         let allArticles = [];
         let allCategories = new Set(); 
+        let currentArticleImageUrl = ''; // 用於儲存當前文章的圖片 URL
         let currentArticlePdfUrl = ''; // 用於儲存當前文章的 PDF URL
         let isTextView = true; // 追蹤當前顯示模式，預設為文字版
 
@@ -222,15 +295,19 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         const modalCreationDate = document.getElementById('modalCreationDate');
         const modalPublishDate = document.getElementById('modalPublishDate');
         const modalContent = document.getElementById('modalContent');
-        const pdfViewer = document.getElementById('pdfViewer'); // 新增 PDF 顯示 iframe
-        const toggleViewBtn = document.getElementById('toggleViewBtn'); // 新增切換按鈕
+        const modalImageContainer = document.getElementById('modalImageContainer'); // 圖片顯示容器
+        const modalImage = document.getElementById('modalImage'); // 圖片元素
+        const noImageMessage = document.getElementById('noImageMessage'); // 無圖片訊息
+        const toggleViewBtn = document.getElementById('toggleViewBtn'); // 切換按鈕 (文字/圖片)
         const copyContentBtn = document.getElementById('copyContentBtn');
         const copyStatusMessage = document.getElementById('copyStatusMessage');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn'); // 下載 PDF 按鈕
+        const catalogPdfViewer = document.getElementById('catalogPdfViewer'); // 目錄 PDF 顯示 iframe
 
+        // 載入文章數據
         async function fetchArticles() {
             loadingMessage.classList.remove('hidden');
             errorMessage.classList.add('hidden');
-            // 檢查 GOOGLE_APPS_SCRIPT_URL 是否為空或仍是預留文字
             if (!GOOGLE_APPS_SCRIPT_URL || GOOGLE_APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
                 errorMessage.textContent = '錯誤：請在 JavaScript 程式碼中設定您的 Google Apps Script Web App URL。';
                 errorMessage.classList.remove('hidden');
@@ -264,7 +341,10 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             renderHotArticles(sortedArticles);
             renderCategorizedArticles(sortedArticles);
             renderCategoryCards();
-            updateNavigation(); 
+            // 載入目錄 PDF
+            if (catalogPdfViewer && CATALOG_PDF_URL) {
+                catalogPdfViewer.src = CATALOG_PDF_URL;
+            }
         }
 
         function sortArticles(articles, sortOrder) {
@@ -434,14 +514,25 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             modalContent.innerHTML = article.content || '無內容。';
             copyContentBtn.onclick = () => copyToClipboard(article.content);
             
-            // 儲存 PDF URL
-            currentArticlePdfUrl = article.pdfUrl || ''; // 確保您的 Google Sheet 中有 'pdfUrl' 欄位，並且包含有效的 PDF 連結
-            console.log('Current Article PDF URL:', currentArticlePdfUrl); // 新增的除錯日誌
+            // 儲存圖片 URL
+            currentArticleImageUrl = article.imageUrl || ''; // 確保您的 Google Sheet 中有 'imageUrl' 欄位
+            console.log('Current Article Image URL:', currentArticleImageUrl); // 除錯日誌
 
-            // 根據是否有 PDF URL 決定是否顯示切換按鈕
-            if (currentArticlePdfUrl) {
+            // 儲存 PDF URL
+            currentArticlePdfUrl = article.pdfUrl || ''; // 確保您的 Google Sheet 中有 'pdfUrl' 欄位
+            console.log('Current Article PDF URL:', currentArticlePdfUrl); // 除錯日誌
+
+            // 預設顯示文字版
+            isTextView = true;
+            modalContent.classList.remove('hidden');
+            modalImageContainer.classList.add('hidden');
+            modalImage.src = ''; // 清空圖片 src
+            noImageMessage.classList.add('hidden'); // 隱藏無圖片訊息
+
+            // 根據是否有圖片 URL 決定是否顯示切換按鈕
+            if (currentArticleImageUrl) {
                 toggleViewBtn.classList.remove('hidden');
-                toggleViewBtn.textContent = '切換至圖片版';
+                toggleViewBtn.textContent = '切換至圖片版'; // 按鈕文字為「切換至圖片版」
                 toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" />
                     </svg>切換至圖片版`;
@@ -449,11 +540,13 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                 toggleViewBtn.classList.add('hidden');
             }
 
-            // 預設顯示文字版
-            isTextView = true;
-            modalContent.classList.remove('hidden');
-            pdfViewer.classList.add('hidden');
-            pdfViewer.src = ''; // 清空 iframe src
+            // 根據是否有 PDF URL 決定是否顯示下載 PDF 按鈕
+            if (currentArticlePdfUrl) {
+                downloadPdfBtn.href = currentArticlePdfUrl;
+                downloadPdfBtn.classList.remove('hidden');
+            } else {
+                downloadPdfBtn.classList.add('hidden');
+            }
 
             articleModal.classList.remove('hidden');
             setTimeout(() => {
@@ -469,7 +562,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             articleModal.querySelector('div').classList.add('scale-95');
             setTimeout(() => {
                 articleModal.classList.add('hidden');
-                pdfViewer.src = ''; // 關閉時清空 PDF 載入
+                modalImage.src = ''; // 關閉時清空圖片載入
             }, 300);
         }
 
@@ -497,10 +590,21 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
         toggleViewBtn.addEventListener('click', () => {
             if (isTextView) {
                 // 切換到圖片版
-                if (currentArticlePdfUrl) {
+                if (currentArticleImageUrl) {
                     modalContent.classList.add('hidden');
-                    pdfViewer.src = currentArticlePdfUrl;
-                    pdfViewer.classList.remove('hidden');
+                    modalImage.src = currentArticleImageUrl;
+                    modalImage.onerror = () => { // 圖片載入失敗處理
+                        modalImageContainer.classList.add('hidden');
+                        noImageMessage.classList.remove('hidden');
+                        copyStatusMessage.textContent = '圖片載入失敗，請檢查圖片 URL。';
+                        copyStatusMessage.classList.remove('hidden');
+                        copyStatusMessage.classList.add('text-red-600');
+                        setTimeout(() => { copyStatusMessage.classList.add('hidden'); copyStatusMessage.classList.remove('text-red-600'); }, 3000);
+                        // 如果圖片載入失敗，自動切回文字版
+                        toggleViewBtn.click(); 
+                    };
+                    modalImageContainer.classList.remove('hidden');
+                    noImageMessage.classList.add('hidden'); // 隱藏無圖片訊息
                     toggleViewBtn.textContent = '切換至文字版';
                     toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -508,7 +612,7 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                     </svg>切換至文字版`;
                     isTextView = false;
                 } else {
-                    // 如果沒有 PDF URL，可以給出提示或禁用按鈕
+                    // 如果沒有圖片 URL，給出提示
                     copyStatusMessage.textContent = '此文章沒有圖片版。';
                     copyStatusMessage.classList.remove('hidden');
                     copyStatusMessage.classList.add('text-red-600');
@@ -516,8 +620,9 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
                 }
             } else {
                 // 切換到文字版
-                pdfViewer.classList.add('hidden');
-                pdfViewer.src = ''; // 清空 iframe src
+                modalImageContainer.classList.add('hidden');
+                modalImage.src = ''; // 清空圖片 src
+                noImageMessage.classList.add('hidden'); // 隱藏無圖片訊息
                 modalContent.classList.remove('hidden');
                 toggleViewBtn.textContent = '切換至圖片版';
                 toggleViewBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -573,9 +678,10 @@ The structure prioritizes: Discoverability (Hot articles and category cards imme
             return text.replace(regex, '<span class="highlight">$1</span>');
         }
 
+        // 此函數不再動態添加導航連結，僅在需要時更新現有連結
         function updateNavigation() {
-            const nav = document.querySelector('header nav');
-            nav.querySelectorAll('a:not([href="#author-intro"]):not([href="#hot-articles"]):not([href="#category-cards"])').forEach(link => link.remove());
+            // 由於 HTML 中導航連結已固定，此處無需動態添加
+            // 如果未來需要動態類別連結，則需在此處重新實現
         }
 
         document.addEventListener('DOMContentLoaded', () => {
